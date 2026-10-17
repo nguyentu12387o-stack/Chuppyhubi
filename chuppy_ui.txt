@@ -1,0 +1,533 @@
+--[[
+════════════════════════════════════════════════════════════════════════════════
+  🐾 CHUPPY MINI UI LIBRARY V2
+  Compact · Animated · Professional
+  ════════════════════════════════════════════════════════════════════════════════
+  Bản quyền: Chuppy Hub Team
+  Phiên bản: 2.0.0
+  
+  Đặc điểm nổi bật:
+  ─ Kích thước mini 360×460, tối ưu cho mobile
+  ─ Animation dùng spring physics mượt như iOS
+  ─ Toggle knob có hiệu ứng nảy (bounce)
+  ─ Ripple effect khi bấm button
+  ─ Glow pulse cho accent color
+  ─ Notification slide-in với progress bar
+  ─ Search bar toàn cục tìm kiếm mọi toggle
+  ─ Sidebar dạng icon + tooltip
+  ─ Section collapse/expand mượt
+  ─ Modal dialog hệ thống
+  ─ Progress bar cho trạng thái farm
+  ─ Hybrid animation 60 FPS
+════════════════════════════════════════════════════════════════════════════════
+--]]
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- [1.0] SERVICES CACHE
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- Cache tất cả service để tránh gọi GetService nhiều lần (giảm overhead)
+
+local Players            = game:GetService("Players")
+local ReplicatedStorage  = game:GetService("ReplicatedStorage")
+local RunService         = game:GetService("RunService")
+local UserInputService   = game:GetService("UserInputService")
+local TweenService       = game:GetService("TweenService")
+local GuiService         = game:GetService("GuiService")
+local CoreGui            = game:GetService("CoreGui")
+local StarterGui         = game:GetService("StarterGui")
+local HttpService        = game:GetService("HttpService")
+local ContextActionService = game:GetService("ContextActionService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera      = workspace.CurrentCamera
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- [1.1] THEME - Bảng màu và cấu hình chung
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local Theme = {
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Màu nền chính
+    -- ─────────────────────────────────────────────────────────────────────────
+    Background        = Color3.fromRGB(12, 13, 18),      -- Nền ngoài cùng
+    Surface           = Color3.fromRGB(20, 22, 30),      -- Nền panel chính
+    Surface2          = Color3.fromRGB(28, 30, 40),      -- Nền card element
+    Surface3          = Color3.fromRGB(36, 38, 50),      -- Nền element hover
+    SurfaceHover      = Color3.fromRGB(42, 45, 58),      -- Hover state
+    SurfaceActive     = Color3.fromRGB(50, 53, 68),      -- Active state
+    SurfaceDeep       = Color3.fromRGB(8, 9, 13),        -- Nền sâu (slider track)
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Viền
+    -- ─────────────────────────────────────────────────────────────────────────
+    Border            = Color3.fromRGB(40, 42, 55),      -- Viền mặc định
+    BorderLight       = Color3.fromRGB(55, 58, 75),      -- Viền sáng
+    BorderFocus       = Color3.fromRGB(80, 90, 120),     -- Viền khi focus
+    BorderGlow        = Color3.fromRGB(0, 180, 255),     -- Viền phát sáng
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Accent (màu nhấn chính - cyan blue)
+    -- ─────────────────────────────────────────────────────────────────────────
+    Accent            = Color3.fromRGB(0, 190, 255),
+    AccentDim         = Color3.fromRGB(0, 90, 130),
+    AccentDark        = Color3.fromRGB(0, 60, 90),
+    AccentGlow        = Color3.fromRGB(80, 220, 255),
+    AccentSoft        = Color3.fromRGB(0, 140, 190),
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Success (xanh lá)
+    -- ─────────────────────────────────────────────────────────────────────────
+    Success           = Color3.fromRGB(0, 220, 130),
+    SuccessDim        = Color3.fromRGB(0, 90, 55),
+    SuccessDark       = Color3.fromRGB(0, 60, 35),
+    SuccessGlow       = Color3.fromRGB(80, 255, 170),
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Warning (vàng cam)
+    -- ─────────────────────────────────────────────────────────────────────────
+    Warning           = Color3.fromRGB(255, 180, 50),
+    WarningDim        = Color3.fromRGB(120, 80, 20),
+    WarningDark       = Color3.fromRGB(80, 50, 10),
+    WarningGlow       = Color3.fromRGB(255, 210, 120),
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Danger (đỏ)
+    -- ─────────────────────────────────────────────────────────────────────────
+    Danger            = Color3.fromRGB(255, 75, 95),
+    DangerDim         = Color3.fromRGB(120, 30, 40),
+    DangerDark        = Color3.fromRGB(80, 20, 28),
+    DangerGlow        = Color3.fromRGB(255, 130, 150),
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Info (xanh dương nhạt)
+    -- ─────────────────────────────────────────────────────────────────────────
+    Info              = Color3.fromRGB(100, 160, 255),
+    InfoDim           = Color3.fromRGB(50, 80, 130),
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Text
+    -- ─────────────────────────────────────────────────────────────────────────
+    Text              = Color3.fromRGB(240, 242, 248),    -- Text chính
+    TextBright        = Color3.fromRGB(255, 255, 255),    -- Text sáng nhất
+    TextDim           = Color3.fromRGB(150, 158, 175),    -- Text mờ
+    TextMuted         = Color3.fromRGB(90, 96, 115),      -- Text rất mờ
+    TextInactive      = Color3.fromRGB(60, 65, 80),       -- Text bị disable
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Kích thước
+    -- ─────────────────────────────────────────────────────────────────────────
+    Radius            = UDim.new(0, 8),
+    RadiusSmall       = UDim.new(0, 6),
+    RadiusTiny        = UDim.new(0, 4),
+    RadiusLarge       = UDim.new(0, 12),
+    RadiusXL          = UDim.new(0, 16),
+    RadiusFull        = UDim.new(1, 0),
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Animation timings
+    -- ─────────────────────────────────────────────────────────────────────────
+    AnimInstant       = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    AnimFast          = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    AnimNormal        = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    AnimSmooth        = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    AnimSlow          = TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+    AnimSpring        = TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    AnimSpringIn      = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+    AnimBounce        = TweenInfo.new(0.6, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out),
+    AnimLinear        = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Fonts
+    -- ─────────────────────────────────────────────────────────────────────────
+    FontBlack         = Enum.Font.GothamBlack,
+    FontBold          = Enum.Font.GothamBold,
+    FontMedium        = Enum.Font.GothamMedium,
+    FontRegular       = Enum.Font.Gotham,
+    FontMono          = Enum.Font.Code,
+    FontMonoBold      = Enum.Font.Code,  -- Code không có bold
+
+    -- ─────────────────────────────────────────────────────────────────────────
+    -- Font sizes
+    -- ─────────────────────────────────────────────────────────────────────────
+    SizeTiny          = 9,
+    SizeSmall         = 10,
+    SizeNormal        = 11,
+    SizeMedium        = 12,
+    SizeLarge         = 13,
+    SizeTitle         = 14,
+    SizeHeader        = 16,
+    SizeBig           = 18,
+    SizeHuge          = 22,
+}
+
+-- Export theme ra getgenv để các module khác dùng
+if getgenv then getgenv().ChuppyTheme = Theme end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- [1.2] HELPER FUNCTIONS - Các hàm tiện ích
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- Hàm tạo Instance gọn gàng, tự set nhiều property cùng lúc
+-- Cách dùng: New("Frame", { Size = UDim2.new(1,0,1,0), BackgroundColor3 = Color3.new() }, parent)
+local function New(class, props, parent)
+    local obj = Instance.new(class)
+    for k, v in pairs(props or {}) do
+        if k ~= "Parent" then
+            pcall(function() obj[k] = v end)
+        end
+    end
+    if parent then obj.Parent = parent end
+    return obj
+end
+
+-- Thêm UICorner (bo góc) cho object
+local function Corner(radius, parent)
+    return New("UICorner", { CornerRadius = radius or Theme.Radius }, parent)
+end
+
+-- Thêm UIStroke (viền) cho object
+local function Stroke(color, thickness, transparency, parent)
+    return New("UIStroke", {
+        Color = color or Theme.Border,
+        Thickness = thickness or 1,
+        Transparency = transparency or 0,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+    }, parent)
+end
+
+-- Thêm UIPadding
+local function Padding(top, bottom, left, right, parent)
+    return New("UIPadding", {
+        PaddingTop    = UDim.new(0, top or 0),
+        PaddingBottom = UDim.new(0, bottom or 0),
+        PaddingLeft   = UDim.new(0, left or 0),
+        PaddingRight  = UDim.new(0, right or 0),
+    }, parent)
+end
+
+-- Tween nhanh 1 object với property cho trước
+local function Tween(obj, info, props)
+    if not obj or not obj.Parent then return nil end
+    local tween = TweenService:Create(obj, info or Theme.AnimNormal, props)
+    tween:Play()
+    return tween
+end
+
+-- Tween và trả về Promise-like callback khi hoàn thành
+local function TweenAndThen(obj, info, props, callback)
+    if not obj or not obj.Parent then return end
+    local tween = TweenService:Create(obj, info or Theme.AnimNormal, props)
+    tween.Completed:Connect(function(state)
+        if state == Enum.PlaybackState.Completed and callback then
+            pcall(callback)
+        end
+    end)
+    tween:Play()
+    return tween
+end
+
+-- Lerp màu mượt (dùng cho animation)
+local function LerpColor(a, b, alpha)
+    return a:Lerp(b, math.clamp(alpha, 0, 1))
+end
+
+-- Lấy kích thước text (dùng cho auto-size)
+local function TextSize(font, size, text)
+    local label = Instance.new("TextLabel")
+    label.TextSize = size
+    label.Font = font
+    label.Text = text or ""
+    local bounds = label.TextBounds
+    label:Destroy()
+    return bounds
+end
+
+-- Format số có dấu phẩy: 1000000 -> 1,000,000
+local function FormatNumber(n)
+    local formatted = tostring(math.floor(tonumber(n) or 0))
+    local k
+    while true do
+        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
+        if k == 0 then break end
+    end
+    return formatted
+end
+
+-- Format thời gian: 3661 -> "1h 1m 1s"
+local function FormatTime(seconds)
+    seconds = math.floor(seconds)
+    local h = math.floor(seconds / 3600)
+    local m = math.floor((seconds % 3600) / 60)
+    local s = seconds % 60
+    if h > 0 then return string.format("%dh %dm %ds", h, m, s) end
+    if m > 0 then return string.format("%dm %ds", m, s) end
+    return string.format("%ds", s)
+end
+
+-- Deep copy table
+local function DeepCopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[DeepCopy(orig_key)] = DeepCopy(orig_value)
+        end
+        setmetatable(copy, DeepCopy(getmetatable(orig)))
+    else
+        copy = orig
+    end
+    return copy
+end
+
+-- Check nếu table rỗng
+local function IsEmpty(t)
+    for _, _ in pairs(t) do return false end
+    return true
+end
+
+-- Merge 2 tables (b shallow copy vào a)
+local function Merge(a, b)
+    local result = DeepCopy(a)
+    for k, v in pairs(b or {}) do
+        result[k] = v
+    end
+    return result
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- [1.3] ANIMATION PRIMITIVES - Các effect animation cơ bản
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+local Anim = {}
+
+-- Pulse effect: object phình ra rồi co lại
+-- Dùng cho notification attention, warning, etc.
+function Anim.Pulse(obj, scale, duration)
+    if not obj or not obj.Parent then return end
+    scale = scale or 1.05
+    duration = duration or 0.3
+
+    local origSize = obj.Size
+    local origPos  = obj.Position
+
+    local info = TweenInfo.new(duration / 2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+    local tween1 = TweenService:Create(obj, info, {
+        Size = UDim2.new(
+            origSize.X.Scale * scale, origSize.X.Offset * scale,
+            origSize.Y.Scale * scale, origSize.Y.Offset * scale
+        ),
+    })
+    tween1:Play()
+
+    tween1.Completed:Connect(function()
+        if not obj or not obj.Parent then return end
+        local tween2 = TweenService:Create(obj, info, { Size = origSize })
+        tween2:Play()
+    end)
+end
+
+-- Ripple effect: vòng tròn lan ra từ điểm click
+function Anim.Ripple(parent, x, y, color)
+    if not parent or not parent.Parent then return end
+
+    color = color or Theme.Accent
+
+    local ripple = New("Frame", {
+        Name = "RippleEffect",
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Position = UDim2.new(0, x, 0, y),
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = color,
+        BackgroundTransparency = 0.7,
+        BorderSizePixel = 0,
+        ZIndex = 10,
+    }, parent)
+    Corner(Theme.RadiusFull, ripple)
+
+    -- Kích thước max dựa trên parent
+    local maxSize = math.max(parent.AbsoluteSize.X, parent.AbsoluteSize.Y) * 2
+
+    Tween(ripple, TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, maxSize, 0, maxSize),
+        BackgroundTransparency = 1,
+    })
+
+    task.delay(0.7, function()
+        if ripple and ripple.Parent then
+            ripple:Destroy()
+        end
+    end)
+end
+
+-- Glow pulse: viền phát sáng nhấp nháy liên tục
+-- Dùng cho button active, warning, etc.
+local activeGlows = {}
+
+function Anim.StartGlow(obj, stroke, baseColor, glowColor)
+    if not obj or not obj.Parent or not stroke then return end
+
+    -- Cancel glow cũ nếu có
+    if activeGlows[obj] then
+        activeGlows[obj]:Disconnect()
+        activeGlows[obj] = nil
+    end
+
+    baseColor = baseColor or Theme.Border
+    glowColor = glowColor or Theme.AccentGlow
+
+    local startTime = tick()
+    local period = 1.5
+
+    activeGlows[obj] = RunService.Heartbeat:Connect(function()
+        if not obj or not obj.Parent or not stroke or not stroke.Parent then
+            if activeGlows[obj] then
+                activeGlows[obj]:Disconnect()
+                activeGlows[obj] = nil
+            end
+            return
+        end
+
+        local t = ((tick() - startTime) % period) / period
+        -- Sine wave để alpha mượt
+        local alpha = (math.sin(t * math.pi * 2) + 1) / 2
+        -- Alpha từ 0.3 đến 0.8
+        alpha = 0.3 + alpha * 0.5
+
+        stroke.Color = LerpColor(baseColor, glowColor, alpha)
+        stroke.Transparency = 1 - alpha
+    end)
+end
+
+function Anim.StopGlow(obj)
+    if activeGlows[obj] then
+        activeGlows[obj]:Disconnect()
+        activeGlows[obj] = nil
+    end
+end
+
+-- Shake effect: object rung lắc (dùng cho error/denied)
+function Anim.Shake(obj, intensity, duration)
+    if not obj or not obj.Parent then return end
+
+    intensity = intensity or 5
+    duration = duration or 0.3
+
+    local origPos = obj.Position
+    local startTime = tick()
+    local conn
+
+    conn = RunService.RenderStepped:Connect(function()
+        local elapsed = tick() - startTime
+        if elapsed >= duration or not obj or not obj.Parent then
+            if obj and obj.Parent then
+                obj.Position = origPos
+            end
+            if conn then conn:Disconnect() end
+            return
+        end
+
+        local progress = 1 - (elapsed / duration)
+        local offsetX = math.random(-intensity, intensity) * progress
+        local offsetY = math.random(-intensity, intensity) * progress
+
+        obj.Position = UDim2.new(
+            origPos.X.Scale, origPos.X.Offset + offsetX,
+            origPos.Y.Scale, origPos.Y.Offset + offsetY
+        )
+    end)
+end
+
+-- Fade in từ transparent
+function Anim.FadeIn(obj, duration, targetTransparency)
+    if not obj or not obj.Parent then return end
+    duration = duration or 0.3
+    targetTransparency = targetTransparency or 0
+
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    Tween(obj, info, {
+        BackgroundTransparency = targetTransparency,
+    })
+end
+
+-- Fade out
+function Anim.FadeOut(obj, duration)
+    if not obj or not obj.Parent then return end
+    duration = duration or 0.2
+
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(obj, info, { BackgroundTransparency = 1 })
+    tween:Play()
+    return tween
+end
+
+-- Slide in từ trái
+function Anim.SlideIn(obj, fromOffset, duration, callback)
+    if not obj or not obj.Parent then return end
+    fromOffset = fromOffset or -20
+    duration = duration or 0.3
+
+    local origPos = obj.Position
+    obj.Position = UDim2.new(
+        origPos.X.Scale, origPos.X.Offset + fromOffset,
+        origPos.Y.Scale, origPos.Y.Offset
+    )
+    obj.BackgroundTransparency = 1
+    if obj:FindFirstChildOfClass("UIStroke") then
+        obj:FindFirstChildOfClass("UIStroke").Transparency = 1
+    end
+
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(obj, info, {
+        Position = origPos,
+        BackgroundTransparency = obj:GetAttribute("TargetTransparency") or 0,
+    })
+    tween:Play()
+
+    if callback then
+        tween.Completed:Connect(function()
+            pcall(callback)
+        end)
+    end
+
+    return tween
+end
+
+-- Spring scale effect khi hover button
+function Anim.HoverScale(obj, targetScale, duration)
+    if not obj or not obj.Parent then return end
+    targetScale = targetScale or 1.02
+    duration = duration or 0.15
+
+    local origSize = obj:GetAttribute("_OrigSize") or obj.Size
+    obj:SetAttribute("_OrigSize", origSize)
+
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    Tween(obj, info, {
+        Size = UDim2.new(
+            origSize.X.Scale * targetScale, origSize.X.Offset * targetScale,
+            origSize.Y.Scale * targetScale, origSize.Y.Offset * targetScale
+        ),
+    })
+end
+
+function Anim.ResetScale(obj, duration)
+    if not obj or not obj.Parent then return end
+    local origSize = obj:GetAttribute("_OrigSize")
+    if not origSize then return end
+
+    duration = duration or 0.15
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+    Tween(obj, info, { Size = origSize })
+end
+
+-- Chevron rotate (cho section collapse)
+function Anim.RotateChevron(chevron, toAngle, duration)
+    if not chevron or not chevron.Parent then return end
+    duration = duration or 0.25
+    local info = TweenInfo.new(duration, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    Tween(chevron, info, { Rotation = toAngle })
+end
+
+print("[Chuppy UI] Lượt 1/10 - Phần 1.3 hoàn thành: Animation Primitives")
